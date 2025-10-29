@@ -19,15 +19,26 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Use AI to analyze the image
-    const systemPrompt = `You are a plant disease detection AI. Analyze the provided leaf image and identify:
-    1. The disease name (if any)
-    2. Confidence level (as a percentage)
-    3. Brief description of the disease
-    4. Treatment/remedy recommendations
-    
-    Format your response as JSON with these exact keys: disease, confidence, description, remedies
-    If the leaf appears healthy, set disease to "Healthy" with appropriate confidence.`;
+    // Use AI to analyze the image with advanced CNN-level accuracy
+    const systemPrompt = `You are an expert plant pathologist AI with deep learning capabilities. Analyze the provided leaf image with high precision and provide:
+
+1. DISEASE IDENTIFICATION: Identify the exact disease name using scientific nomenclature
+2. CONFIDENCE ANALYSIS: Provide accuracy percentage (0-100%) based on visual symptoms
+3. DETAILED DESCRIPTION: Describe the disease pathology, symptoms, and progression
+4. PESTICIDE RECOMMENDATIONS: List specific chemical and organic pesticides with application rates
+5. TREATMENT PROTOCOL: Step-by-step treatment and management practices
+6. PREVENTION: Preventive measures to avoid recurrence
+
+Use your advanced image analysis to detect:
+- Leaf discoloration patterns (chlorosis, necrosis)
+- Lesion shapes and sizes
+- Fungal growth patterns
+- Bacterial spots or streaks
+- Viral mosaic patterns
+- Nutrient deficiency symptoms
+- Pest damage indicators
+
+Be precise and scientific in your analysis. If healthy, state "Healthy" with confidence level.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -63,28 +74,57 @@ serve(async (req) => {
             type: 'function',
             function: {
               name: 'detect_disease',
-              description: 'Detect plant disease from leaf image',
+              description: 'Advanced CNN-level plant disease detection with comprehensive analysis',
               parameters: {
                 type: 'object',
                 properties: {
                   disease: {
                     type: 'string',
-                    description: 'Name of the detected disease or "Healthy"'
+                    description: 'Scientific name of the detected disease (e.g., "Bacterial Leaf Blight", "Early Blight", "Powdery Mildew") or "Healthy"'
                   },
                   confidence: {
                     type: 'number',
-                    description: 'Confidence percentage (0-100)'
+                    description: 'Detection confidence percentage (0-100) based on visual symptom analysis'
                   },
                   description: {
                     type: 'string',
-                    description: 'Brief description of the disease and its symptoms'
+                    description: 'Detailed scientific description including: pathogen type, symptom progression, affected plant parts, and disease cycle'
                   },
-                  remedies: {
+                  pesticides: {
+                    type: 'array',
+                    description: 'List of recommended pesticides with specific details',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: {
+                          type: 'string',
+                          description: 'Pesticide chemical/commercial name'
+                        },
+                        type: {
+                          type: 'string',
+                          description: 'Type: fungicide, bactericide, insecticide, or organic'
+                        },
+                        dosage: {
+                          type: 'string',
+                          description: 'Application rate (e.g., "2ml/liter", "500g/acre")'
+                        },
+                        application: {
+                          type: 'string',
+                          description: 'Application method and frequency'
+                        }
+                      }
+                    }
+                  },
+                  treatment: {
                     type: 'string',
-                    description: 'Recommended treatments and prevention methods'
+                    description: 'Step-by-step treatment protocol including timing, cultural practices, and integrated pest management'
+                  },
+                  prevention: {
+                    type: 'string',
+                    description: 'Preventive measures including crop rotation, sanitation, resistant varieties, and environmental management'
                   }
                 },
-                required: ['disease', 'confidence', 'description', 'remedies']
+                required: ['disease', 'confidence', 'description', 'pesticides', 'treatment', 'prevention']
               }
             }
           }

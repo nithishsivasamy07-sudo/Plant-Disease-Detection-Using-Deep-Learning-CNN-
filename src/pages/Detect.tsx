@@ -64,14 +64,18 @@ const Detect = () => {
 
       if (error) throw error;
 
-      // Save to history
+      // Save to history with enhanced data
       await supabase.from('disease_detections').insert({
         user_id: user.id,
         image_url: publicUrl,
         disease_name: data.disease,
         confidence: data.confidence,
         description: data.description,
-        remedies: data.remedies,
+        remedies: JSON.stringify({
+          pesticides: data.pesticides || [],
+          treatment: data.treatment || '',
+          prevention: data.prevention || ''
+        }),
       });
 
       setResult(data);
@@ -149,25 +153,61 @@ const Detect = () => {
               {result && (
                 <Card className="bg-muted animate-fade-in">
                   <CardHeader>
-                    <CardTitle className="text-2xl">Detection Result</CardTitle>
+                    <CardTitle className="text-2xl">🔬 Detection Result</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">Disease:</h3>
-                      <p className="text-xl text-primary">{result.disease}</p>
+                  <CardContent className="space-y-6">
+                    <div className="bg-background p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-2">🦠 Disease Identified:</h3>
+                      <p className="text-2xl text-primary font-bold">{result.disease}</p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Confidence:</h3>
-                      <p className="text-xl">{result.confidence}%</p>
+                    
+                    <div className="bg-background p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-2">📊 Confidence Level:</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-muted rounded-full h-4">
+                          <div 
+                            className="bg-primary h-4 rounded-full transition-all"
+                            style={{ width: `${result.confidence}%` }}
+                          />
+                        </div>
+                        <span className="text-xl font-bold">{result.confidence}%</span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Description:</h3>
-                      <p>{result.description}</p>
+
+                    <div className="bg-background p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-2">📖 Disease Description:</h3>
+                      <p className="text-foreground/90 leading-relaxed">{result.description}</p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Remedies:</h3>
-                      <p>{result.remedies}</p>
-                    </div>
+
+                    {result.pesticides && result.pesticides.length > 0 && (
+                      <div className="bg-background p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg mb-3">💊 Recommended Pesticides:</h3>
+                        <div className="space-y-3">
+                          {result.pesticides.map((pesticide: any, idx: number) => (
+                            <div key={idx} className="border-l-4 border-primary pl-4 py-2">
+                              <p className="font-semibold text-primary">{pesticide.name}</p>
+                              <p className="text-sm text-muted-foreground">Type: {pesticide.type}</p>
+                              <p className="text-sm"><strong>Dosage:</strong> {pesticide.dosage}</p>
+                              <p className="text-sm"><strong>Application:</strong> {pesticide.application}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {result.treatment && (
+                      <div className="bg-background p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg mb-2">🩺 Treatment Protocol:</h3>
+                        <p className="text-foreground/90 leading-relaxed whitespace-pre-line">{result.treatment}</p>
+                      </div>
+                    )}
+
+                    {result.prevention && (
+                      <div className="bg-background p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg mb-2">🛡️ Prevention Measures:</h3>
+                        <p className="text-foreground/90 leading-relaxed whitespace-pre-line">{result.prevention}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
