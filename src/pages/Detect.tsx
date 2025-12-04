@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,11 @@ const Detect = () => {
   const [preview, setPreview] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,6 +41,78 @@ const Detect = () => {
       reader.readAsDataURL(file);
       setResult(null);
     }
+  };
+
+  const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera not supported in this browser.');
+      toast.error('Camera not supported in this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setIsCameraActive(true);
+      setCameraError(null);
+    } catch (err) {
+      console.error('Error starting camera:', err);
+      setCameraError('Unable to access camera. Please check permissions.');
+      toast.error('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const handleCapture = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) return;
+
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.drawImage(video, 0, 0, width, height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+        setResult(null);
+      };
+      reader.readAsDataURL(blob);
+      stopCamera();
+    }, 'image/jpeg', 0.9);
   };
 
   const handleAnalyze = async () => {
@@ -101,7 +178,7 @@ const Detect = () => {
             <CardHeader>
               <CardTitle>{t('detect.subtitle')}</CardTitle>
               <CardDescription>
-                Upload a clear image of the plant leaf or take a live photo using your device camera for accurate disease detection
+                Upload a clear image of the plant leaf or use the live camera preview for accurate disease detection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -122,22 +199,39 @@ const Detect = () => {
                   </Button>
                 </label>
 
-                <Input
-                  id="camera-capture"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <label htmlFor="camera-capture">
-                  <Button variant="outline" className="cursor-pointer mt-2" asChild>
-                    <span>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Take photo with camera
-                    </span>
+                <div className="w-full max-w-md space-y-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={isCameraActive ? stopCamera : startCamera}
+                  >
+                    {isCameraActive ? 'Stop live camera' : 'Start live camera preview'}
                   </Button>
-                </label>
+
+                  {cameraError && (
+                    <p className="text-sm text-destructive text-center">{cameraError}</p>
+                  )}
+
+                  {isCameraActive && (
+                    <div className="rounded-lg overflow-hidden border bg-muted">
+                      <video
+                        ref={videoRef}
+                        className="w-full h-64 object-cover bg-black"
+                        autoPlay
+                        playsInline
+                        muted
+                      />
+                      <div className="p-3 flex justify-center">
+                        <Button type="button" onClick={handleCapture}>
+                          Capture photo for analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <canvas ref={canvasRef} className="hidden" />
 
                 {preview && (
                   <div className="w-full max-w-md">
