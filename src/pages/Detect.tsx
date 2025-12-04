@@ -101,7 +101,7 @@ const Detect = () => {
             <CardHeader>
               <CardTitle>{t('detect.subtitle')}</CardTitle>
               <CardDescription>
-                Upload a clear image of the plant leaf for accurate disease detection
+                Upload a clear image of the plant leaf or take a live photo using your device camera for accurate disease detection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -118,6 +118,23 @@ const Detect = () => {
                     <span>
                       <Upload className="mr-2 h-4 w-4" />
                       {t('detect.upload')}
+                    </span>
+                  </Button>
+                </label>
+
+                <Input
+                  id="camera-capture"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="camera-capture">
+                  <Button variant="outline" className="cursor-pointer mt-2" asChild>
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Take photo with camera
                     </span>
                   </Button>
                 </label>
